@@ -1,11 +1,9 @@
-rcpt\_to.max\_count
-=================
+# rcpt_to.max_count
 
 This plugin sets a maximum limit on RCPT TOs. Violators will be disconnected.
 
-Configuration
--------------
+## Configuration
 
-* rcpt\_to.max\_count
+- rcpt_to.max_count
 
   The maximum number of recipients. Default: 40.

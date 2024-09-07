@@ -4,11 +4,9 @@ let toobusy;
 let was_busy = false;
 
 exports.register = function () {
-
     try {
-        toobusy = require('toobusy-js');
-    }
-    catch (e) {
+        toobusy = require("toobusy-js");
+    } catch (e) {
         this.logerror(e);
         this.logerror("try: 'npm install -g toobusy-js'");
         return;
@@ -16,11 +14,11 @@ exports.register = function () {
 
     this.loadConfig();
 
-    this.register_hook('connect', 'check_busy', -100);
-}
+    this.register_hook("connect", "check_busy", -100);
+};
 
 exports.loadConfig = function () {
-    let maxLag = this.config.get('toobusy.maxlag','value', () => {
+    let maxLag = this.config.get("toobusy.maxlag", "value", () => {
         this.loadConfig();
     });
 
@@ -29,7 +27,7 @@ exports.loadConfig = function () {
         // This will throw an exception on error
         toobusy.maxLag(maxLag);
     }
-}
+};
 
 exports.check_busy = function (next, connection) {
     if (!toobusy()) {
@@ -45,5 +43,5 @@ exports.check_busy = function (next, connection) {
         this.logcrit(`deferring connections: lag=${currentLag} max=${maxLag}`);
     }
 
-    return next(DENYSOFTDISCONNECT, 'Too busy; please try again later');
-}
+    return next(DENYSOFTDISCONNECT, "Too busy; please try again later");
+};

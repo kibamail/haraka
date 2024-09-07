@@ -1,11 +1,11 @@
 // Queue to qmail-queue
 
-const childproc = require('node:child_process');
-const fs        = require('node:fs');
+const childproc = require("node:child_process");
+const fs = require("node:fs");
 
 exports.register = function () {
-
-    this.queue_exec = this.config.get('qmail-queue.path') || '/var/qmail/bin/qmail-queue';
+    this.queue_exec =
+        this.config.get("qmail-queue.path") || "/var/qmail/bin/qmail-queue";
     if (!fs.existsSync(this.queue_exec)) {
         throw new Error(`Cannot find qmail-queue binary (${this.queue_exec})`);
     }
@@ -13,21 +13,21 @@ exports.register = function () {
     this.load_qmail_queue_ini();
 
     if (this.cfg.main.enable_outbound) {
-        this.register_hook('queue_outbound', 'hook_queue');
+        this.register_hook("queue_outbound", "hook_queue");
     }
-}
+};
 
 exports.load_qmail_queue_ini = function () {
-
-    this.cfg = this.config.get('qmail-queue.ini', {
-        booleans: [
-            '+main.enable_outbound',
-        ],
-    },
-    () => {
-        this.load_qmail_queue_ini();
-    });
-}
+    this.cfg = this.config.get(
+        "qmail-queue.ini",
+        {
+            booleans: ["+main.enable_outbound"],
+        },
+        () => {
+            this.load_qmail_queue_ini();
+        },
+    );
+};
 
 exports.hook_queue = function (next, connection) {
     const plugin = this;
@@ -35,41 +35,46 @@ exports.hook_queue = function (next, connection) {
     const txn = connection?.transaction;
     if (!txn) return next();
 
-    const q_wants = txn.notes.get('queue.wants');
-    if (q_wants && q_wants !== 'qmail-queue') return next();
+    const q_wants = txn.notes.get("queue.wants");
+    if (q_wants && q_wants !== "qmail-queue") return next();
 
     const qmail_queue = childproc.spawn(
         this.queue_exec, // process name
-        [],              // arguments
-        { stdio: ['pipe', 'pipe', process.stderr] }
+        [], // arguments
+        { stdio: ["pipe", "pipe", process.stderr] },
     );
 
-    qmail_queue.on('exit', function finished (code) {
+    qmail_queue.on("exit", function finished(code) {
         if (code !== 0) {
-            connection.logerror(plugin, `Unable to queue message to qmail-queue: ${code}`);
+            connection.logerror(
+                plugin,
+                `Unable to queue message to qmail-queue: ${code}`,
+            );
             next();
-        }
-        else {
+        } else {
             next(OK, "Queued!");
         }
     });
 
-    connection.transaction.message_stream.pipe(qmail_queue.stdin, { line_endings: '\n' });
+    connection.transaction.message_stream.pipe(qmail_queue.stdin, {
+        line_endings: "\n",
+    });
 
-    qmail_queue.stdin.on('close', () => {
+    qmail_queue.stdin.on("close", () => {
         if (!connection?.transaction) {
-            plugin.logerror("Transaction went away while delivering mail to qmail-queue");
+            plugin.logerror(
+                "Transaction went away while delivering mail to qmail-queue",
+            );
             try {
                 qmail_queue.stdout.end();
-            }
-            catch (err) {
-                if (err.code !== 'ENOTCONN') {
+            } catch (err) {
+                if (err.code !== "ENOTCONN") {
                     // Ignore ENOTCONN and re throw anything else
-                    throw err
+                    throw err;
                 }
             }
 
-            connection.results.add(plugin, { err: 'dead sender' });
+            connection.results.add(plugin, { err: "dead sender" });
             return;
         }
         plugin.loginfo("Message Stream sent to qmail. Now sending envelope");
@@ -83,7 +88,7 @@ exports.hook_queue = function (next, connection) {
             buf[p++] = mail_from.charCodeAt(i);
         }
         buf[p++] = 0;
-        connection.transaction.rcpt_to.forEach(rcpt => {
+        connection.transaction.rcpt_to.forEach((rcpt) => {
             buf[p++] = 84;
             const rcpt_to = rcpt.address();
             for (let j = 0; j < rcpt_to.length; j++) {
@@ -92,7 +97,7 @@ exports.hook_queue = function (next, connection) {
             buf[p++] = 0;
         });
         buf[p++] = 0;
-        qmail_queue.stdout.on('error', err => {}); // stdout throws an error on close
+        qmail_queue.stdout.on("error", (err) => {}); // stdout throws an error on close
         qmail_queue.stdout.end(buf);
     });
-}
+};

@@ -8,21 +8,20 @@ let deliveryMode;
 
 exports.register = function () {
     this.init_amqp_connection();
-}
+};
 
 exports.rabbitmq_queue = function (next, connection) {
     if (!connection?.transaction) return next();
 
-    connection.transaction.message_stream.get_data(str => {
-        if (channel?.sendToQueue(queue, str, {deliveryMode})) {
+    connection.transaction.message_stream.get_data((str) => {
+        if (channel?.sendToQueue(queue, str, { deliveryMode })) {
             return next(OK);
-        }
-        else {
+        } else {
             this.logerror("Failed to queue to rabbitmq");
             return next();
         }
     });
-}
+};
 
 exports.init_amqp_connection = function () {
     const cfg = this.config.get("rabbitmq.ini").rabbitmq;
@@ -41,35 +40,53 @@ exports.init_amqp_connection = function () {
     const autoDelete = cfg.autoDelete === "true" || false;
     deliveryMode = cfg.deliveryMode || 2;
 
-    amqp.connect(`${protocol}://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}${vhost}`, (err, conn) => {
-        if (err) {
-            this.logerror(`Connection to rabbitmq failed: ${err}`);
-            return;
-        }
-        // TODO: if !confirm conn.createChannel...
-        conn.createConfirmChannel((err2, ch) => {
-            if (err2) {
-                this.logerror(`Error creating rabbitmq channel: ${err2}`);
-                return conn.close();
+    amqp.connect(
+        `${protocol}://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}${vhost}`,
+        (err, conn) => {
+            if (err) {
+                this.logerror(`Connection to rabbitmq failed: ${err}`);
+                return;
             }
-            ch.assertExchange(exchangeName, exchangeType, {durable}, (err3, ok) => {
-                if (err3) {
-                    this.logerror(`Error asserting rabbitmq exchange: ${err3}`);
+            // TODO: if !confirm conn.createChannel...
+            conn.createConfirmChannel((err2, ch) => {
+                if (err2) {
+                    this.logerror(`Error creating rabbitmq channel: ${err2}`);
                     return conn.close();
                 }
-                ch.assertQueue(queueName,
-                    {durable, autoDelete, arguments: this.config.get("rabbitmq.ini").queue_args},
-                    (err4, ok2) => {
-                        if (err4) {
-                            this.logerror(`Error asserting rabbitmq queue: ${err4}`);
+                ch.assertExchange(
+                    exchangeName,
+                    exchangeType,
+                    { durable },
+                    (err3, ok) => {
+                        if (err3) {
+                            this.logerror(
+                                `Error asserting rabbitmq exchange: ${err3}`,
+                            );
                             return conn.close();
                         }
-                        queue = ok2.queue;
-                        channel = ch;
-                        this.register_hook('queue', 'rabbitmq_queue');
-                    }
+                        ch.assertQueue(
+                            queueName,
+                            {
+                                durable,
+                                autoDelete,
+                                arguments:
+                                    this.config.get("rabbitmq.ini").queue_args,
+                            },
+                            (err4, ok2) => {
+                                if (err4) {
+                                    this.logerror(
+                                        `Error asserting rabbitmq queue: ${err4}`,
+                                    );
+                                    return conn.close();
+                                }
+                                queue = ok2.queue;
+                                channel = ch;
+                                this.register_hook("queue", "rabbitmq_queue");
+                            },
+                        );
+                    },
                 );
             });
-        });
-    });
-}
+        },
+    );
+};

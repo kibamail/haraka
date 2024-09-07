@@ -3,20 +3,20 @@
 // in the mail_from.blocklist file. You need to be running the
 // mail_from.blocklist plugin for this to work fully.
 
-const fs    = require('node:fs');
-const utils = require('haraka-utils');
+const fs = require("node:fs");
+const utils = require("haraka-utils");
 
 exports.hook_data = (next, connection) => {
     // enable mail body parsing
     connection.transaction.parse_body = true;
     next();
-}
+};
 
 exports.hook_data_post = function (next, connection) {
     if (!connection?.relaying || !connection?.transaction) return next();
 
-    const recip = (this.config.get('block_me.recipient') || '').toLowerCase();
-    const senders = this.config.get('block_me.senders', 'list');
+    const recip = (this.config.get("block_me.recipient") || "").toLowerCase();
+    const senders = this.config.get("block_me.senders", "list");
 
     // Make sure only 1 recipient
     if (connection.transaction.rcpt_to.length != 1) {
@@ -46,18 +46,21 @@ exports.hook_data_post = function (next, connection) {
     connection.transaction.notes.block_me = 1;
 
     // add to mail_from.blocklist
-    fs.open('./config/mail_from.blocklist', 'a', (err, fd) => {
+    fs.open("./config/mail_from.blocklist", "a", (err, fd) => {
         if (err) {
-            connection.logerror(this, `Unable to append to mail_from.blocklist: ${err}`);
+            connection.logerror(
+                this,
+                `Unable to append to mail_from.blocklist: ${err}`,
+            );
             return;
         }
-        fs.write(fd, `${to_block}\n`, null, 'UTF-8', (err2, written) => {
+        fs.write(fd, `${to_block}\n`, null, "UTF-8", (err2, written) => {
             fs.close(fd);
         });
     });
 
     next();
-}
+};
 
 exports.hook_queue = (next, connection) => {
     if (connection.transaction.notes.block_me) {
@@ -66,16 +69,16 @@ exports.hook_queue = (next, connection) => {
     }
 
     next();
-}
+};
 
 // Example: From: 	Site Tucano Gold <contato@tucanogold.com.br>
-function extract_from_line (body) {
+function extract_from_line(body) {
     const matches = body.bodytext.match(/\bFrom:[^<\n]*<([^>\n]*)>/);
     if (matches) {
         return matches[1];
     }
 
-    for (let i=0,l=body.children.length; i < l; i++) {
+    for (let i = 0, l = body.children.length; i < l; i++) {
         const from = extract_from_line(body.children[i]);
         if (from) {
             return from;

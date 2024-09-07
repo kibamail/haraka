@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 // RFC 1869 command parser
 
 // 6.  MAIL FROM and RCPT TO Parameters
@@ -24,19 +24,18 @@ const chew_regexp = /\s+([A-Za-z0-9][A-Za-z0-9-]*(?:=[^= \x00-\x1f]+)?)$/;
 
 exports.parse = (type, line, strict) => {
     let params = [];
-    line = (new String(line)).replace(/\s*$/, '');
-    if (type === 'mail') {
-        line = line.replace(strict ? /from:/i : /from:\s*/i, '');
-    }
-    else {
-        line = line.replace(strict ? /to:/i : /to:\s*/i, '');
+    line = new String(line).replace(/\s*$/, "");
+    if (type === "mail") {
+        line = line.replace(strict ? /from:/i : /from:\s*/i, "");
+    } else {
+        line = line.replace(strict ? /to:/i : /to:\s*/i, "");
     }
 
     while (1) {
         const old_length = line.length;
-        line = line.replace(chew_regexp, function repl (str, p1) {
+        line = line.replace(chew_regexp, function repl(str, p1) {
             params.push(p1);
-            return '';
+            return "";
         });
         if (old_length === line.length) break;
     }
@@ -59,34 +58,30 @@ exports.parse = (type, line, strict) => {
         params.unshift(line);
     }
 
-    line = params.shift() || '';
+    line = params.shift() || "";
     if (strict) {
         if (!line.match(/^<.*>$/)) {
             throw new Error(`Invalid format of ${type} command: ${line}`);
         }
     }
 
-    if (type === 'mail') {
+    if (type === "mail") {
         if (!line.length) {
             return ["<>"]; // 'MAIL FROM:' --> 'MAIL FROM:<>'
         }
         if (line.match(/@.*\s/)) {
-            throw new Error('Syntax error in parameters');
+            throw new Error("Syntax error in parameters");
         }
-    }
-    else {
+    } else {
         // console.log(`Looking at ${line}``);
         if (line.match(/@.*\s/)) {
-            throw new Error('Syntax error in parameters');
-        }
-        else {
+            throw new Error("Syntax error in parameters");
+        } else {
             if (line.match(/\s/)) {
-                throw new Error('Syntax error in parameters');
-            }
-            else if (line.match(/@/)) {
+                throw new Error("Syntax error in parameters");
+            } else if (line.match(/@/)) {
                 if (!line.match(/^<.*>$/)) line = `<${line}>`;
-            }
-            else if (!line.match(/^<(postmaster|abuse)>$/i)) {
+            } else if (!line.match(/^<(postmaster|abuse)>$/i)) {
                 throw new Error(`Syntax error in address: ${line}`);
             }
         }
@@ -95,4 +90,4 @@ exports.parse = (type, line, strict) => {
     params.unshift(line);
 
     return params;
-}
+};

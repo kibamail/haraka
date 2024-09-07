@@ -1,14 +1,14 @@
-'use strict';
+"use strict";
 // An SMTP Transaction
 
-const util   = require('node:util');
+const util = require("node:util");
 
-const Notes  = require('haraka-notes');
-const utils  = require('haraka-utils');
-const message = require('haraka-email-message')
+const Notes = require("haraka-notes");
+const utils = require("haraka-utils");
+const message = require("haraka-email-message");
 
 class Transaction {
-    constructor (uuid, cfg = {}) {
+    constructor(uuid, cfg = {}) {
         this.uuid = uuid || utils.uuid();
         this.cfg = cfg;
         this.mail_from = null;
@@ -26,49 +26,58 @@ class Transaction {
         this.notes = new Notes();
         this.notes.skip_plugins = [];
         this.header = new message.Header();
-        this.message_stream = new message.stream(this.cfg, this.uuid, this.header.header_list);
+        this.message_stream = new message.stream(
+            this.cfg,
+            this.uuid,
+            this.header.header_list,
+        );
         this.discard_data = false;
         this.resetting = false;
         this.rcpt_count = {
             accept: 0,
             tempfail: 0,
             reject: 0,
-        }
+        };
         this.msg_status = undefined;
         this.data_post_start = null;
         this.data_post_delay = 0;
-        this.encoding = 'utf8';
+        this.encoding = "utf8";
         this.mime_part_count = 0;
     }
 
-    ensure_body () {
+    ensure_body() {
         if (this.body) return;
 
         this.body = new message.Body(this.header);
-        this.body.on('mime_boundary', m => this.incr_mime_count());
+        this.body.on("mime_boundary", (m) => this.incr_mime_count());
 
         for (const hook of this.attachment_start_hooks) {
-            this.body.on('attachment_start', hook);
+            this.body.on("attachment_start", hook);
         }
 
         if (this.banner) this.body.set_banner(this.banner);
 
         for (const o of this.body_filters) {
             this.body.add_filter((ct, enc, buf) => {
-                const re_match = (util.types.isRegExp(o.ct_match) && o.ct_match.test(ct.toLowerCase()));
-                const ct_begins = ct.toLowerCase().indexOf(String(o.ct_match).toLowerCase()) === 0;
+                const re_match =
+                    util.types.isRegExp(o.ct_match) &&
+                    o.ct_match.test(ct.toLowerCase());
+                const ct_begins =
+                    ct
+                        .toLowerCase()
+                        .indexOf(String(o.ct_match).toLowerCase()) === 0;
                 if (re_match || ct_begins) return o.filter(ct, enc, buf);
-            })
+            });
         }
     }
 
     // Removes the CR of a CRLF newline at the end of the buffer.
-    remove_final_cr (data) {
+    remove_final_cr(data) {
         if (data.length < 2) return data;
         if (!Buffer.isBuffer(data)) data = Buffer.from(data);
 
-        if (data[data.length - 2] === 0x0D && data[data.length - 1] === 0x0A) {
-            data[data.length - 2] = 0x0A;
+        if (data[data.length - 2] === 0x0d && data[data.length - 1] === 0x0a) {
+            data[data.length - 2] = 0x0a;
             return data.slice(0, data.length - 1);
         }
         return data;
@@ -76,7 +85,7 @@ class Transaction {
 
     // Duplicates any '.' chars at the beginning of a line (dot-stuffing) and
     // ensures all newlines are CRLF.
-    add_dot_stuffing_and_ensure_crlf_newlines (data) {
+    add_dot_stuffing_and_ensure_crlf_newlines(data) {
         if (!data.length) return data;
         if (!Buffer.isBuffer(data)) data = Buffer.from(data);
 
@@ -89,34 +98,40 @@ class Transaction {
         let output_pos = 0;
 
         let input_pos = 0;
-        let next_dot = data.indexOf(0x2E);
-        let next_lf = data.indexOf(0x0A);
+        let next_dot = data.indexOf(0x2e);
+        let next_lf = data.indexOf(0x0a);
         while (next_dot !== -1 || next_lf !== -1) {
-            const run_end = (next_dot !== -1 && (next_lf === -1 || next_dot < next_lf))
-                ? next_dot : next_lf;
+            const run_end =
+                next_dot !== -1 && (next_lf === -1 || next_dot < next_lf)
+                    ? next_dot
+                    : next_lf;
 
             // Copy up till whichever comes first, '.' or '\n' (but don't
             // copy the '.' or '\n' itself).
             data.copy(output, output_pos, input_pos, run_end);
             output_pos += run_end - input_pos;
 
-            if (data[run_end] === 0x2E && (run_end === 0 || data[run_end - 1] === 0x0A)) {
+            if (
+                data[run_end] === 0x2e &&
+                (run_end === 0 || data[run_end - 1] === 0x0a)
+            ) {
                 // Replace /^\./ with '..'
-                output[output_pos++] = 0x2E;
-            }
-            else if (data[run_end] === 0x0A && (run_end === 0 || data[run_end - 1] !== 0x0D)) {
+                output[output_pos++] = 0x2e;
+            } else if (
+                data[run_end] === 0x0a &&
+                (run_end === 0 || data[run_end - 1] !== 0x0d)
+            ) {
                 // Replace /\r?\n/ with '\r\n'
-                output[output_pos++] = 0x0D;
+                output[output_pos++] = 0x0d;
             }
             output[output_pos++] = data[run_end];
 
             input_pos = run_end + 1;
 
             if (run_end === next_dot) {
-                next_dot = data.indexOf(0x2E, input_pos);
-            }
-            else {
-                next_lf = data.indexOf(0x0A, input_pos);
+                next_dot = data.indexOf(0x2e, input_pos);
+            } else {
+                next_lf = data.indexOf(0x0a, input_pos);
             }
         }
 
@@ -128,31 +143,37 @@ class Transaction {
         return output.slice(0, output_pos);
     }
 
-    add_data (line) {
-        if (typeof line === 'string') { // This shouldn't ever happen.
+    add_data(line) {
+        if (typeof line === "string") {
+            // This shouldn't ever happen.
             line = Buffer.from(line, this.encoding);
         }
         // is this the end of headers line?
-        if (this.header_pos === 0 &&
-            (line[0] === 0x0A || (line[0] === 0x0D && line[1] === 0x0A))) {
+        if (
+            this.header_pos === 0 &&
+            (line[0] === 0x0a || (line[0] === 0x0d && line[1] === 0x0a))
+        ) {
             this.header.parse(this.header_lines);
             this.header_pos = this.header_lines.length;
             this.found_hb_sep = true;
             if (this.parse_body) this.ensure_body();
-        }
-        else if (this.header_pos === 0) {
+        } else if (this.header_pos === 0) {
             // Build up headers
-            if (this.header_lines.length < (this.cfg?.headers?.max_lines || 1000)) {
-                if (line[0] === 0x2E) line = line.slice(1); // Strip leading '.'
-                this.header_lines.push(line.toString(this.encoding).replace(/\r\n$/, '\n'));
+            if (
+                this.header_lines.length <
+                (this.cfg?.headers?.max_lines || 1000)
+            ) {
+                if (line[0] === 0x2e) line = line.slice(1); // Strip leading '.'
+                this.header_lines.push(
+                    line.toString(this.encoding).replace(/\r\n$/, "\n"),
+                );
             }
-        }
-        else if (this.parse_body) {
+        } else if (this.parse_body) {
             let new_line = line;
-            if (new_line[0] === 0x2E) new_line = new_line.slice(1); // Strip leading "."
+            if (new_line[0] === 0x2e) new_line = new_line.slice(1); // Strip leading "."
 
             line = this.add_dot_stuffing_and_ensure_crlf_newlines(
-                this.body.parse_more(this.remove_final_cr(new_line))
+                this.body.parse_more(this.remove_final_cr(new_line)),
             );
 
             if (!line.length) return; // buffering for banners
@@ -161,7 +182,7 @@ class Transaction {
         if (!this.discard_data) this.message_stream.add_line(line);
     }
 
-    end_data (cb) {
+    end_data(cb) {
         if (!this.found_hb_sep && this.header_lines.length) {
             // Headers not parsed yet - must be a busted email
             // Strategy: Find the first line that doesn't look like a header.
@@ -169,7 +190,11 @@ class Transaction {
             let header_pos = 0;
             for (let i = 0; i < this.header_lines.length; i++) {
                 // Anything that doesn't match a header or continuation
-                if (!/^(?:([^\s:]*):\s*([\s\S]*)$|[ \t])/.test(this.header_lines[i])) {
+                if (
+                    !/^(?:([^\s:]*):\s*([\s\S]*)$|[ \t])/.test(
+                        this.header_lines[i],
+                    )
+                ) {
                     break;
                 }
                 header_pos = i;
@@ -185,7 +210,9 @@ class Transaction {
             }
         }
         if (this.header_pos && this.parse_body) {
-            const line = this.add_dot_stuffing_and_ensure_crlf_newlines(this.body.parse_end());
+            const line = this.add_dot_stuffing_and_ensure_crlf_newlines(
+                this.body.parse_end(),
+            );
             if (line.length) {
                 this.body.force_end();
 
@@ -195,52 +222,51 @@ class Transaction {
 
         if (this.discard_data) {
             cb();
-        }
-        else {
+        } else {
             this.message_stream.add_line_end(cb);
         }
     }
 
-    add_header (key, value) {
+    add_header(key, value) {
         this.header.add_end(key, value);
         if (this.header_pos > 0) this.reset_headers();
     }
 
-    add_leading_header (key, value) {
+    add_leading_header(key, value) {
         this.header.add(key, value);
         if (this.header_pos > 0) this.reset_headers();
     }
 
-    reset_headers () {
+    reset_headers() {
         const header_lines = this.header.lines();
         this.header_pos = header_lines.length;
     }
 
-    remove_header (key) {
+    remove_header(key) {
         this.header.remove(key);
         if (this.header_pos > 0) this.reset_headers();
     }
 
-    attachment_hooks (start, data, end) {
+    attachment_hooks(start, data, end) {
         this.parse_body = true;
         this.attachment_start_hooks.push(start);
     }
 
-    set_banner (text, html) {
+    set_banner(text, html) {
         // throw "transaction.set_banner is currently non-functional";
         this.parse_body = true;
         if (!html) {
-            html = text.replace(/\n/g, '<br/>\n');
+            html = text.replace(/\n/g, "<br/>\n");
         }
         this.banner = [text, html];
     }
 
-    add_body_filter (ct_match, filter) {
+    add_body_filter(ct_match, filter) {
         this.parse_body = true;
         this.body_filters.push({ ct_match, filter });
     }
 
-    incr_mime_count (line) {
+    incr_mime_count(line) {
         this.mime_part_count++;
     }
 }
@@ -249,4 +275,4 @@ exports.Transaction = Transaction;
 
 exports.createTransaction = (uuid, cfg) => {
     return new Transaction(uuid, cfg);
-}
+};

@@ -1,19 +1,21 @@
 {
   "author": "Matt Sergeant <helpme@gmail.com> (http://baudehlo.com/)",
-  "name": "Haraka",
+  "name": "@kibamail/haraka",
   "license": "MIT",
-  "description": "An SMTP Server project.",
+  "description": "An SMTP Server project. A fork of Haraka by Matt Sergeant <helpme@gmail.com> (http://baudehlo.com/) with very little modifications to remove the disk based queue driver.",
   "keywords": [
     "haraka",
     "smtp",
     "server",
-    "email"
+    "email",
+    "kibamail",
+    "kbmta"
   ],
   "version": "3.0.4",
   "homepage": "http://haraka.github.io",
   "repository": {
     "type": "git",
-    "url": "git://github.com/haraka/Haraka.git"
+    "url": "git://github.com/kibamail/haraka.git"
   },
   "main": "haraka.js",
   "engines": {

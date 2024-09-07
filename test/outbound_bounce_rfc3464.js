@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 // Testing bounce email contents related to errors occuring during SMTP dialog
 
@@ -11,23 +11,22 @@
 //   * outbound.send_email is called with a RFC3464 bounce message
 //   * or, in case of 4XX: that temp_fail is called and dsn vars are available)
 
-const assert = require('node:assert')
-const fs          = require('node:fs');
-const path        = require('node:path');
+const assert = require("node:assert");
+const fs = require("node:fs");
+const path = require("node:path");
 
-const util_hmailitem = require('./fixtures/util_hmailitem');
-const TODOItem    = require('../outbound/todo');
-const HMailItem   = require('../outbound/hmail');
-const obc         = require('../outbound/config');
-const outbound    = require('../outbound');
-const mock_sock   = require('./fixtures/line_socket');
+const util_hmailitem = require("./fixtures/util_hmailitem");
+const TODOItem = require("../outbound/todo");
+const HMailItem = require("../outbound/hmail");
+const obc = require("../outbound/config");
+const outbound = require("../outbound");
+const mock_sock = require("./fixtures/line_socket");
 
 obc.cfg.pool_concurrency_max = 0;
 
 const outbound_context = {
     TODOItem,
-    exports: outbound
-}
+    exports: outbound,
+};
 
-const queue_dir = path.resolve(__dirname, 'test-queue');
-
+const queue_dir = path.resolve(__dirname, "test-queue");

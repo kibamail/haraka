@@ -1,5 +1,4 @@
-HAProxy PROXY protocol extension support
-========================================
+# HAProxy PROXY protocol extension support
 
 Haraka natively supports the PROXY protocol [1].
 
@@ -18,7 +17,7 @@ addresses can be specified by it's CIDR network address.
 
 When a host connects to Haraka that matches an IP address present in the
 `haproxy_hosts` file - a banner is not sent, instead Haraka waits for the
-PROXY command to be sent before proceeding.  The connection will timeout
+PROXY command to be sent before proceeding. The connection will timeout
 with `421 PROXY timed out` if the command is not sent within 30 seconds.
 
 NOTE: because Haraka does not send a banner when a listed HAProxy host
@@ -55,7 +54,7 @@ the check wait for the banner, send QUIT and then check the response:
 
 ```
         option tcp-check
-        tcp-check expect rstring ^220\ 
+        tcp-check expect rstring ^220\
         tcp-check send QUIT\r\n
-        tcp-check expect rstring ^221\ 
+        tcp-check expect rstring ^221\
 ```

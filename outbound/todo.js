@@ -1,8 +1,8 @@
-'use strict';
+"use strict";
 
 // queue file header data
 class TODOItem {
-    constructor (domain, recipients, transaction) {
+    constructor(domain, recipients, transaction) {
         this.queue_time = Date.now();
         this.domain = domain;
         this.rcpt_to = recipients;
@@ -15,17 +15,17 @@ class TODOItem {
 
     serialise_message_stream() {
         return new Promise((resolve, reject) => {
-            let message_content = '';
-            message_stream.on('data', (chunk) => {
+            let message_content = "";
+            this.message_stream.on("data", (chunk) => {
                 message_content += chunk.toString();
             });
-            message_stream.on('end', () => {
+            this.message_stream.on("end", () => {
                 resolve(message_content);
             });
-            message_stream.on('error', (err) => {
+            this.message_stream.on("error", (err) => {
                 reject(err);
             });
-        }); 
+        });
     }
 }
 

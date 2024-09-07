@@ -1,42 +1,43 @@
-'use strict';
+"use strict";
 
-const logger = require('../logger');
+const logger = require("../logger");
 
 class TQTimer {
-
-    constructor (id, fire_time, cb) {
+    constructor(id, fire_time, cb) {
         this.id = id;
         this.fire_time = fire_time;
         this.cb = cb;
     }
 
-    cancel () {
+    cancel() {
         this.cb = null;
     }
-
 }
 
 class TimerQueue {
-
-    constructor (interval = 1000) {
-        this.name = 'outbound/timer_queue'
+    constructor(interval = 1000) {
+        this.name = "outbound/timer_queue";
         this.queue = [];
-        this.interval_timer = setInterval(() => { this.fire(); }, interval);
-        this.interval_timer.unref() // allow server to exit
+        this.interval_timer = setInterval(() => {
+            this.fire();
+        }, interval);
+        this.interval_timer.unref(); // allow server to exit
     }
 
-    add (id, ms, cb) {
+    add(id, ms, cb) {
         const fire_time = Date.now() + ms;
 
         const timer = new TQTimer(id, fire_time, cb);
 
-        if ((this.queue.length === 0) ||
-            fire_time >= this.queue[this.queue.length - 1].fire_time) {
+        if (
+            this.queue.length === 0 ||
+            fire_time >= this.queue[this.queue.length - 1].fire_time
+        ) {
             this.queue.push(timer);
             return timer;
         }
 
-        for (let i=0; i < this.queue.length; i++) {
+        for (let i = 0; i < this.queue.length; i++) {
             if (this.queue[i].fire_time > fire_time) {
                 this.queue.splice(i, 0, timer);
                 return timer;
@@ -46,7 +47,7 @@ class TimerQueue {
         throw "Should never get here";
     }
 
-    discard (id) {
+    discard(id) {
         for (let i = 0; i < this.queue.length; i++) {
             if (this.queue[i].id === id) {
                 this.queue[i].cancel();
@@ -57,7 +58,7 @@ class TimerQueue {
         throw `${id} not found`;
     }
 
-    fire () {
+    fire() {
         if (this.queue.length === 0) return;
 
         const now = Date.now();
@@ -68,19 +69,22 @@ class TimerQueue {
         }
     }
 
-    length () {
+    length() {
         return this.queue.length;
     }
 
-    drain () {
-        logger.debug(this, `Draining ${this.queue.length} items from the queue`);
+    drain() {
+        logger.debug(
+            this,
+            `Draining ${this.queue.length} items from the queue`,
+        );
         while (this.queue.length) {
             const to_run = this.queue.shift();
             if (to_run.cb) to_run.cb();
         }
     }
 
-    shutdown () {
+    shutdown() {
         clearInterval(this.interval_timer);
     }
 }

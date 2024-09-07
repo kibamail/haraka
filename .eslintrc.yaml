@@ -3,10 +3,10 @@ env:
   node: true
   es2022: true
 
-extends: ['@haraka']
+extends: ["@haraka"]
 
 rules:
   semi-style: [error, last]
-  prefer-template: 'warn'
+  prefer-template: "warn"
   no-unneeded-ternary: 1
   no-unused-vars: 0

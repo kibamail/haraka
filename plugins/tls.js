@@ -1,48 +1,54 @@
-'use strict';
+"use strict";
 // TLS is built into Haraka. This plugin conditionally advertises STARTTLS.
 // see 'haraka -h tls' for help
 
-const tls_socket = require('./tls_socket');
+const tls_socket = require("./tls_socket");
 
 // exported so tests can override config dir
-exports.net_utils = require('haraka-net-utils');
+exports.net_utils = require("haraka-net-utils");
 
 exports.register = function () {
-    tls_socket.load_tls_ini()
+    tls_socket.load_tls_ini();
 
-    if (tls_socket.cfg.redis.disable_for_failed_hosts) this.logdebug('Will disable STARTTLS for failing TLS hosts')
+    if (tls_socket.cfg.redis.disable_for_failed_hosts)
+        this.logdebug("Will disable STARTTLS for failing TLS hosts");
 
-    this.register_hook('capabilities',         'advertise_starttls')
-    this.register_hook('unrecognized_command', 'upgrade_connection')
-}
+    this.register_hook("capabilities", "advertise_starttls");
+    this.register_hook("unrecognized_command", "upgrade_connection");
+};
 
 exports.shutdown = () => {
     if (tls_socket.shutdown) tls_socket.shutdown();
-}
+};
 
 exports.advertise_starttls = function (next, connection) {
-
     // if no TLS setup incomplete/invalid, don't advertise
     if (!tls_socket.tls_valid) {
-        this.logerror('no valid TLS config');
+        this.logerror("no valid TLS config");
         return next();
     }
 
     /* Caution: do not advertise STARTTLS if already TLS upgraded */
     if (connection.tls.enabled) return next();
 
-    if (this.net_utils.ip_in_list(tls_socket.cfg.no_tls_hosts, connection.remote.ip)) {
+    if (
+        this.net_utils.ip_in_list(
+            tls_socket.cfg.no_tls_hosts,
+            connection.remote.ip,
+        )
+    ) {
         return next();
     }
 
-    function enable_tls () {
-        connection.capabilities.push('STARTTLS');
+    function enable_tls() {
+        connection.capabilities.push("STARTTLS");
         connection.tls.advertised = true;
         next();
     }
 
     // check if local port is excluded from starttls advertisement
-    if (tls_socket.cfg.main.no_starttls_ports.includes(connection.local.port)) return next();
+    if (tls_socket.cfg.main.no_starttls_ports.includes(connection.local.port))
+        return next();
 
     // exclude port 587 from NO-GO
     if (connection.local.port === 587) return enable_tls();
@@ -54,35 +60,42 @@ exports.advertise_starttls = function (next, connection) {
     const { redis } = server.notes;
     const dbkey = `no_tls|${connection.remote.ip}`;
 
-    redis.get(dbkey)
-        .then(dbr => {
+    redis
+        .get(dbkey)
+        .then((dbr) => {
             if (!dbr) return enable_tls();
-            connection.results.add(this, { msg: 'no_tls'});
-            next(CONT, 'STARTTLS disabled because previous attempt failed')
+            connection.results.add(this, { msg: "no_tls" });
+            next(CONT, "STARTTLS disabled because previous attempt failed");
         })
-        .catch(err => {
-            connection.results.add(this, {err});
+        .catch((err) => {
+            connection.results.add(this, { err });
             enable_tls();
-        })
-}
+        });
+};
 
 exports.set_notls = function (connection) {
-
     if (!tls_socket.cfg.redis.disable_for_failed_hosts) return;
     if (!server.notes.redis) return;
 
     const expiry = tls_socket.cfg.redis.disable_inbound_expiry || 3600;
 
-    this.lognotice(connection, `STARTTLS failed. Marking ${connection.remote.ip} as non-TLS host for ${expiry} seconds`);
+    this.lognotice(
+        connection,
+        `STARTTLS failed. Marking ${connection.remote.ip} as non-TLS host for ${expiry} seconds`,
+    );
 
-    server.notes.redis.setEx(`no_tls|${connection.remote.ip}`, expiry, (new Date()).toISOString());
-}
+    server.notes.redis.setEx(
+        `no_tls|${connection.remote.ip}`,
+        expiry,
+        new Date().toISOString(),
+    );
+};
 
 exports.upgrade_connection = function (next, connection, params) {
     if (!connection.tls.advertised) return next();
 
     /* Watch for STARTTLS directive from client. */
-    if (params[0].toUpperCase() !== 'STARTTLS') return next();
+    if (params[0].toUpperCase() !== "STARTTLS") return next();
 
     /* Respond to STARTTLS command. */
     connection.respond(220, "Go ahead.");
@@ -92,11 +105,12 @@ exports.upgrade_connection = function (next, connection, params) {
     // adjust plugin.timeout like so: echo '45' > config/tls.timeout
     const timeout = plugin.timeout - 1;
 
-    function nextOnce (disconnected) {
+    function nextOnce(disconnected) {
         if (called_next) return;
         called_next = true;
         clearTimeout(connection.notes.tls_timer);
-        if (!disconnected) connection.lognotice(plugin, 'timeout setting up TLS');
+        if (!disconnected)
+            connection.lognotice(plugin, "timeout setting up TLS");
         plugin.set_notls(connection);
         return next(DENYSOFTDISCONNECT);
     }
@@ -113,7 +127,6 @@ exports.upgrade_connection = function (next, connection, params) {
         clearTimeout(connection.notes.tls_timer);
         called_next = true;
         connection.reset_transaction(() => {
-
             connection.setTLS({
                 cipher,
                 verified,
@@ -122,21 +135,27 @@ exports.upgrade_connection = function (next, connection, params) {
             });
 
             connection.results.add(plugin, connection.tls);
-            plugin.emit_upgrade_msg(connection, verified, verifyErr, cert, cipher);
+            plugin.emit_upgrade_msg(
+                connection,
+                verified,
+                verifyErr,
+                cert,
+                cipher,
+            );
             next(OK);
-        })
-    })
-}
+        });
+    });
+};
 
 exports.hook_disconnect = (next, connection) => {
     if (connection.notes.cleanUpDisconnect) {
         connection.notes.cleanUpDisconnect(true);
     }
     next();
-}
+};
 
 exports.emit_upgrade_msg = function (conn, verified, verifyErr, cert, cipher) {
-    let msg = 'secured:';
+    let msg = "secured:";
     if (cipher) {
         msg += ` cipher=${cipher.name} version=${cipher.version}`;
     }
@@ -146,11 +165,11 @@ exports.emit_upgrade_msg = function (conn, verified, verifyErr, cert, cipher) {
         if (cert.subject) {
             msg += ` cn="${cert.subject.CN}" organization="${cert.subject.O}"`;
         }
-        if (cert.issuer)      msg += ` issuer="${cert.issuer.O}"`;
-        if (cert.valid_to)    msg += ` expires="${cert.valid_to}"`;
+        if (cert.issuer) msg += ` issuer="${cert.issuer.O}"`;
+        if (cert.valid_to) msg += ` expires="${cert.valid_to}"`;
         if (cert.fingerprint) msg += ` fingerprint=${cert.fingerprint}`;
     }
 
-    conn.loginfo(this,  msg);
+    conn.loginfo(this, msg);
     return msg;
-}
+};

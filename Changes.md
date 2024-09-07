@@ -10,7 +10,7 @@
 #### Changed
 
 - prefix node libs with 'node:' #3359
-- .gitignore: add config/me and config/*.pem
+- .gitignore: add config/me and config/\*.pem
 - auth_base: enable disabling constrain_sender at runtime #3298
 - auth_base: skip constrain_sender when auth user has no domain #3319
 - avg: repackaged as NPM module #3347
@@ -18,7 +18,7 @@
 - clamd: repackaged plugin as NPM module
 - config/plugins: consistent formatting #3359
 - connection: check remote is connected before queue #3338
-  - improve log message for queue* hooks, fixes #2998
+  - improve log message for queue\* hooks, fixes #2998
   - support IPv6 when setting remote.is_private #3295
   - in setTLS, replace forEach with for...of
   - NOTE: remove a handful of 3.0 sunset property names #3315
@@ -69,7 +69,7 @@
 - doc(Outbound.md): improve GHFM formatting
 - remove last vestiges of header_hide_version (long ago renamed)
 - server.js: use the local logger methods
-  - es6(async): _graceful, get_smtp_server, setup_smtp_listeners
+  - es6(async): \_graceful, get_smtp_server, setup_smtp_listeners
   - replace async.eachLimit with Promise.all batches
 - status: replace async.map with Promise.allSettled
 - get Haraka version from utils.getVersion (which includes git id if running from repo)
@@ -202,7 +202,7 @@
 - dep(haraka-plugin-redis)!: 1.0 -> 2.0 #3038
 - dep(redis)!: 3.1 -> 4.1 #3058
 - dep(generic-pool): remove pooling from outbound #3115
-- smtp_client: remove smtp_\* pooling support in #3113
+- smtp*client: remove smtp*\* pooling support in #3113
 - dep: bump plugin versions #3063
 - dep: bump haraka-plugin-asn from 1.0.9 to 2.0.0 #3062
 - dep(redis): 3.1 -> 4.1 #3058
@@ -391,7 +391,7 @@
 - smtp_client: pass pool_timeout to new SMTPClient #2574
 - server: default to nodes=1 (was undefined) #2573
 - test/server: use IPv4 127.0.0.1 instead of localhost #2584
-- queue/smtp_*: add v3 upgrade notice and config setting #2585
+- queue/smtp\_\*: add v3 upgrade notice and config setting #2585
 - spf: use the skip config for helo/ehlo checks #2587
 - spf: avoid 2nd EHLO evaluation if EHLO host is identical #2592
 - queue.js refactoring #2593
@@ -484,7 +484,7 @@
 
 #### Fixes
 
-- data_headers: check defined-ness of hdr_address _after_ try/catch #2458
+- data*headers: check defined-ness of hdr_address \_after* try/catch #2458
 - tls: remove tls.ini loading from plugins/tls #2459
 - tls: remove invalid opt from load_tls_ini #2456
 - outbound: escape values in HTML bounce correctly #2446
@@ -680,18 +680,18 @@
 
 #### Changes
 
-  - additional tests get var -> const/let medicine #2122
-  - move connection states into haraka-constants #2121
-  - lint: remove useless escapes #2117
-  - lint: switch no-var to error #2109
-  - rspamd: repackaged as NPM module #2106
-  - dsn: repackaged as NPM module haraka-dsn #2105
-  - outbound: add results when queueing #2103
-  - spamassassin: skip adding headers when value is empty #2102
-  - Replace console.log with stdout #2100
-  - update js-yaml to version 3.10.0 #2097
-  - repackage p0f plugin to NPM #2076
-  - ES6: replace var with const or let #2073
+- additional tests get var -> const/let medicine #2122
+- move connection states into haraka-constants #2121
+- lint: remove useless escapes #2117
+- lint: switch no-var to error #2109
+- rspamd: repackaged as NPM module #2106
+- dsn: repackaged as NPM module haraka-dsn #2105
+- outbound: add results when queueing #2103
+- spamassassin: skip adding headers when value is empty #2102
+- Replace console.log with stdout #2100
+- update js-yaml to version 3.10.0 #2097
+- repackage p0f plugin to NPM #2076
+- ES6: replace var with const or let #2073
 
 #### New Features
 
@@ -920,7 +920,7 @@
 - bring port 465 SMTPS TLS config support on par with STARTTLS #1667
 - use tls.connect instead of createSecurePair #1678
 - redis: improve error handling in tests #
-- replace / path seperators with path.* for cross platform compat #1713
+- replace / path seperators with path.\* for cross platform compat #1713
 
 #### Fixes
 
@@ -1106,7 +1106,7 @@
 #### New Features
 
 - Added bin/haraka --qunstick <domain> to flush all mails
-    for that domain (#1460)
+  for that domain (#1460)
 
 #### Improvements
 
@@ -1128,8 +1128,8 @@
 - remove spameatingmonkey from tests (#1421)
 - replace ./constants.js with haraka-constants (#1353)
 - Document HMail and TODO items (#1343)
-- Copy only a minimal config/* by default (#1341).
-- cfreader/* removed to haraka/haraka-config (#1350)
+- Copy only a minimal config/\* by default (#1341).
+- cfreader/\* removed to haraka/haraka-config (#1350)
 - outbound and smtp_client honor tls.ini settings (#1350)
 - outbound TLS defaults to enabled
 - lint: remove all unused variables (#1358)
@@ -1151,7 +1151,7 @@
 - removed TLD stuff to haraka/haraka-tld (#1301)
 - removed unused 'require('redis') in plugins/karma (#1348)
 - improved MIME header support per rfc2231 (#1344)
-- tls options can be defined for outbound and smtp_* (#1357)
+- tls options can be defined for outbound and smtp\_\* (#1357)
 - explicitly disable SSLv2 (#1395)
 - cache STUN results
 - xclient plugin improvements (#1405)
@@ -1338,7 +1338,7 @@
 - dkim_verify: fixed timeout issue
 - smtp\_[proxy|forward]: correct authentication example
 - Fork child workers after init_master hook
-- connection: return 450/550 for plugin DENY* (was 452/552)
+- connection: return 450/550 for plugin DENY\* (was 452/552)
 - spamassassin: don't call next() when transaction gone
 - outbound: fix crash when sending bounce mail
 - auth_base: fix bad protocol in auth_base.js #1121 (@Dexus)
@@ -1471,13 +1471,13 @@
 - karma: added whitelist award, pass through temp (DENYSOFT) errors, made
   tarpit variable, configurable reject hooks, doc rewrite, ASN awards, fix penalty days calculation, new DSL for karma awards,
 - bannering fixes
-- added log* stubs to test/fixtures/[plugin|connection]
+- added log\* stubs to test/fixtures/[plugin|connection]
 - tests/fixtures/stub_plugin: set name property
 - config: corrected handling of config.arg gets, fix caching bug, fix boolean
   handling, added missing 'type' handling.
 - Adding the option of using CIDR ranges in the haproxy_hosts file
 - tarpit: added config option hooks_to_delay, added docs
-- contrib/haraka.bsd.rc: startup file for *BSD
+- contrib/haraka.bsd.rc: startup file for \*BSD
 - Store attachment headers on stream
 - Record accepted domains at hook_rcpt and improve queue/lmtp
 - return after next() in the whitelist checks
@@ -1522,7 +1522,7 @@
 - Fix underscores in documentation so web version doesn't look so weird
 - By default prevent SMTP AUTH unless on a private IP or using TLS WARNING: May break some uses of Haraka, but is worth it for security
 - In lookup_rdns.strict, check whitelist before looking up IP
-- Big rewrite of the SpamAssassin plugin for simplicity and mainly to pass through X-Spam-* headers provided
+- Big rewrite of the SpamAssassin plugin for simplicity and mainly to pass through X-Spam-\* headers provided
 - Added delay_deny plugin allowing more flexibility on when to reject mail
 - Improvements to ini file parsing allowing floats and negative integers, and specifying boolean keys
 - Fix issue causing a CRIT/crash with lost transaction/connection while sending inbound to ongoing SMTP server

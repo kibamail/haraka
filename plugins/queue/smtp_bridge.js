@@ -3,13 +3,13 @@
 
 exports.register = function () {
     this.load_flat_ini();
-}
+};
 
 exports.load_flat_ini = function () {
-    this.cfg = this.config.get('smtp_bridge.ini', () => {
+    this.cfg = this.config.get("smtp_bridge.ini", () => {
         this.load_flat_ini();
     });
-}
+};
 
 exports.hook_data_post = (next, connection) => {
     const txn = connection?.transaction;
@@ -19,7 +19,7 @@ exports.hook_data_post = (next, connection) => {
     txn.notes.auth_user = connection.notes.auth_user;
     txn.notes.auth_passwd = connection.notes.auth_passwd;
     return next();
-}
+};
 
 exports.hook_get_mx = function (next, hmail, domain) {
     let priority = 10;
@@ -40,6 +40,6 @@ exports.hook_get_mx = function (next, hmail, domain) {
         port,
         auth_type: authType,
         auth_user: hmail.todo.notes.auth_user,
-        auth_pass: hmail.todo.notes.auth_passwd
+        auth_pass: hmail.todo.notes.auth_passwd,
     });
-}
+};
