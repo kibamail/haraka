@@ -79,19 +79,6 @@ exports.createHMailItem = (outbound_context, options, callback) => {
 
     const hmails = [];
     const ok_paths = [];
-    outbound_context.exports.process_delivery(ok_paths, todo, hmails).then(() => {
-        if (hmails.length == 0) {
-            callback('No hmail producted');
-            return;
-        }
-        for (const hmail of hmails) {
-            hmail.hostlist = [ delivery_domain ];
-            callback(null, hmail);
-        }
-    })
-    .catch(err => {
-        callback(`process_delivery error: ${err}`);
-    })
 }
 
 /**

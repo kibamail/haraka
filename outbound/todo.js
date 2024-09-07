@@ -12,6 +12,21 @@ class TODOItem {
         this.uuid = transaction.uuid;
         this.force_tls = false;
     }
+
+    serialise_message_stream() {
+        return new Promise((resolve, reject) => {
+            let message_content = '';
+            message_stream.on('data', (chunk) => {
+                message_content += chunk.toString();
+            });
+            message_stream.on('end', () => {
+                resolve(message_content);
+            });
+            message_stream.on('error', (err) => {
+                reject(err);
+            });
+        }); 
+    }
 }
 
 module.exports = TODOItem;

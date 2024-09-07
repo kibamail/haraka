@@ -13,20 +13,15 @@ const ResultStore = require('haraka-results');
 const logger      = require('../logger');
 const trans       = require('../transaction');
 const plugins     = require('../plugins');
-const FsyncWriteStream = require('./fsync_writestream');
 
 const obc         = require('./config');
 const queuelib    = require('./queue');
 const HMailItem   = require('./hmail');
 const TODOItem    = require('./todo');
-const _qfile = exports.qfile = require('./qfile');
 
-const { queue_dir, temp_fail_queue, delivery_queue } = queuelib;
+const obtls       = require('./tls');
 
 const smtp_ini = config.get('smtp.ini', { booleans: [ '+headers.add_received' ] })
-
-exports.temp_fail_queue = temp_fail_queue;
-exports.delivery_queue = delivery_queue;
 
 exports.name = 'outbound';
 exports.net_utils = net_utils;
@@ -43,16 +38,13 @@ process.on('message', msg => {
     if (!msg.event) return
 
     if (msg.event === 'outbound.load_pid_queue') {
-        exports.load_pid_queue(msg.data);
         return;
     }
     if (msg.event === 'outbound.flush_queue') {
-        exports.flush_queue(msg.domain, process.pid);
         return;
     }
     if (msg.event === 'outbound.shutdown') {
         logger.info(exports, "Shutting down temp fail queue");
-        temp_fail_queue.shutdown();
         return;
     }
     // ignores the message
@@ -234,73 +226,35 @@ exports.send_trans_email = function (transaction, next) {
     connection.pre_send_trans_email_respond = async (retval) => {
         const deliveries = get_deliveries(transaction);
         const hmails = [];
-        const ok_paths = [];
+
+        console.log({ deliveries });
 
         let todo_index = 1;
 
-        try {
-            for (const deliv of deliveries) {
-                const todo = new TODOItem(deliv.domain, deliv.rcpts, transaction);
-                todo.uuid = `${todo.uuid}.${todo_index}`;
-                todo_index++;
-                await this.process_delivery(ok_paths, todo, hmails);
-            }
-        }
-        catch (err) {
-            for (let i=0, l=ok_paths.length; i<l; i++) {
-                fs.unlink(ok_paths[i], () => {});
-            }
-            transaction.results.add({ name: 'outbound'}, { err });
-            if (next) next(constants.denysoft, err);
-            return;
-        }
+        for (const deliv of deliveries) {
+            const todo = new TODOItem(deliv.domain, deliv.rcpts, transaction);
+            todo.uuid = `${todo.uuid}.${todo_index}`;
+            todo_index++;
 
-        for (const hmail of hmails) {
-            delivery_queue.push(hmail);
+            const hmail = new HMailItem(todo);
+
+            hmails.push(hmail);
+
+            if (obtls.cfg) {
+                hmail.send();
+            }
+            else {
+                obtls.init(() => {
+                    hmail.send();
+                });
+            }
         }
 
         transaction.results.add({ name: 'outbound'}, { pass: "queued" });
-        if (next) next(constants.ok, `Message Queued (${transaction.uuid})`);
+        if (next) next(constants.ok, `Message delivery processed (${transaction.uuid})`);
     }
 
     plugins.run_hooks('pre_send_trans_email', connection);
-}
-
-exports.process_delivery = function (ok_paths, todo, hmails) {
-    return new Promise((resolve, reject) => {
-
-        logger.info(exports, `Transaction delivery for domain: ${todo.domain}`);
-        const fname = _qfile.name();
-        const tmp_path = path.join(queue_dir, `${_qfile.platformDOT}${fname}`);
-        const ws = new FsyncWriteStream(tmp_path, { flags: constants.WRITE_EXCL });
-
-        ws.on('close', () => {
-            const dest_path = path.join(queue_dir, fname);
-            fs.rename(tmp_path, dest_path, err => {
-                if (err) {
-                    logger.error(exports, `Unable to rename tmp file!: ${err}`);
-                    fs.unlink(tmp_path, () => {});
-                    reject("Queue error");
-                }
-                else {
-                    hmails.push(new HMailItem (fname, dest_path, todo.notes));
-                    ok_paths.push(dest_path);
-                    resolve();
-                }
-            })
-        })
-
-        ws.on('error', err => {
-            logger.error(exports, `Unable to write queue file (${fname}): ${err}`);
-            ws.destroy();
-            fs.unlink(tmp_path, () => {});
-            reject("Queueing failed");
-        })
-
-        this.build_todo(todo, ws, () => {
-            todo.message_stream.pipe(ws, { dot_stuffing: true });
-        });
-    })
 }
 
 exports.build_todo = (todo, ws, write_more) => {
@@ -321,10 +275,36 @@ exports.build_todo = (todo, ws, write_more) => {
     ws.once('drain', write_more);
 }
 
+exports.deserialise_todo = (serialised_todo, callback) => {
+    const metadata = JSON.parse(serialised_todo.metadata)
+
+    const todo = {}
+
+    todo.mail_from = new Address (metadata.mail_from);
+    todo.rcpt_to = metadata.rcpt_to.map(a => new Address (a));
+    todo.notes = new Notes(metadata.notes);
+
+    return callback(null, todo);
+}
+
+exports.serialise_todo = (todo, callback) => {
+    const todo_str = `\n${JSON.stringify(todo, exclude_from_json, '\t')}\n`
+
+    return todo.message_stream.get_data(buffer => {
+        console.log({buffer})
+        return callback(null, {
+            metadata: todo_str,
+            message_stream: buffer.toString()
+        })
+    })
+}
+
 // Replacer function to exclude items from the queue file header
 function exclude_from_json (key, value) {
     switch (key) {
         case 'message_stream':
+            return undefined;
+        case 'serialise_message_stream':
             return undefined;
         default:
             return value;
